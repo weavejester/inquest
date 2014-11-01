@@ -1,9 +1,9 @@
 (ns inquest.core)
 
-(defn- wrap-monitor [f var]
+(defn- wrap-monitor [f var callback]
   (fn [& args]
-    (prn {:var var, :args args})
+    (callback {:var var, :args args})
     (apply f args)))
 
-(defn monitor [var]
-  (alter-var-root var wrap-monitor var))
+(defn monitor [var callback]
+  (alter-var-root var wrap-monitor var callback))
