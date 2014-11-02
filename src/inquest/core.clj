@@ -20,4 +20,4 @@
   (alter-var-root var add-callback var callback))
 
 (defn unmonitor [var]
-  (alter-var-root var (comp ::original meta)))
+  (alter-var-root var (fn [f] (::original (meta f) f))))
