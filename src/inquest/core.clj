@@ -6,8 +6,11 @@
 (defn- wrap-monitor [f var callbacks]
   (with-meta
     (fn [& args]
-      (report @callbacks {:var var, :args args})
-      (apply f args))
+      (let [cbs @callbacks]
+        (report cbs {:state :enter, :var var, :args args})
+        (let [ret (apply f args)]
+          (report cbs {:state :exit, :var var, :return ret})
+          ret)))
     {::original f
      ::callbacks callbacks}))
 
