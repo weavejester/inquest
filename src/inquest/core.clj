@@ -8,9 +8,13 @@
     (fn [& args]
       (let [cbs @callbacks]
         (report cbs {:state :enter, :var var, :args args})
-        (let [ret (apply f args)]
-          (report cbs {:state :exit, :var var, :return ret})
-          ret)))
+        (try
+          (let [ret (apply f args)]
+            (report cbs {:state :exit, :var var, :return ret})
+            ret)
+          (catch Throwable th
+            (report cbs {:state :exit, :var var, :exception th})
+            (throw th)))))
     {::original f
      ::callbacks callbacks}))
 
