@@ -13,7 +13,7 @@
 (defn- wrap-monitor [f var callbacks]
   (with-meta
     (fn [& args]
-      (let [cbs @callbacks]
+      (let [cbs (vals @callbacks)]
         (dispatch cbs (report :enter var :args args))
         (try
           (let [ret (apply f args)]
@@ -25,13 +25,17 @@
     {::original f
      ::callbacks callbacks}))
 
-(defn- add-callback [f var callback]
-  (if-let [cbs (-> f meta ::callbacks)]
-    (do (swap! cbs conj callback) f)
-    (wrap-monitor f var (atom #{callback}))))
+(defn- monitor-callbacks [var]
+  (-> var var-get meta ::callbacks))
 
-(defn monitor [var callback]
-  (alter-var-root var add-callback var callback))
+(defn monitor [var key callback]
+  (locking var
+    (if-let [callbacks (monitor-callbacks var)]
+      (swap! callbacks assoc key callback)
+      (alter-var-root var wrap-monitor var (atom {key callback})))))
 
-(defn unmonitor [var]
-  (alter-var-root var (fn [f] (::original (meta f) f))))
+(defn unmonitor [var key]
+  (locking var
+    (when-let [callbacks (monitor-callbacks var)]
+      (when (empty? (swap! callbacks dissoc key))
+        (alter-var-root var (comp ::original meta))))))
