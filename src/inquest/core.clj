@@ -41,7 +41,7 @@
       (when (empty? (swap! callbacks dissoc key))
         (alter-var-root var (comp ::original meta))))))
 
-(defrecord Inquest [callbacks vars]
+(defrecord Inquest [vars callbacks]
   component/Lifecycle
   (start [inquest]
     (if (:monitor-key inquest)
@@ -55,5 +55,5 @@
       (doseq [v vars] (unmonitor v k))
       (dissoc inquest :monitor-key))))
 
-(defn inquest [callbacks vars]
-  (->Inquest (set callbacks) (set vars)))
+(defn inquest [vars callbacks]
+  (->Inquest (set vars) (set callbacks)))
