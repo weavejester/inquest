@@ -21,7 +21,7 @@
             (dispatch! rs (report :exit var :return ret))
             ret)
           (catch Throwable th
-            (dispatch! rs (report :exit var :exception th))
+            (dispatch! rs (report :throw var :exception th))
             (throw th)))))
     {::original f
      ::reporters reporters}))
