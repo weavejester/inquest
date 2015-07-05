@@ -8,46 +8,46 @@
    :var    var
    key     value})
 
-(defn- dispatch [callbacks message]
-  (doseq [c callbacks] (c message)))
+(defn- dispatch [reporters message]
+  (doseq [r reporters] (r message)))
 
-(defn- wrap-monitor [f var callbacks]
+(defn- wrap-monitor [f var reporters]
   (with-meta
     (fn [& args]
-      (let [cbs (vals @callbacks)]
-        (dispatch cbs (report :enter var :args args))
+      (let [rs (vals @reporters)]
+        (dispatch rs (report :enter var :args args))
         (try
           (let [ret (apply f args)]
-            (dispatch cbs (report :exit var :return ret))
+            (dispatch rs (report :exit var :return ret))
             ret)
           (catch Throwable th
-            (dispatch cbs (report :exit var :exception th))
+            (dispatch rs (report :exit var :exception th))
             (throw th)))))
     {::original f
-     ::callbacks callbacks}))
+     ::reporters reporters}))
 
-(defn- monitor-callbacks [var]
-  (-> var var-get meta ::callbacks))
+(defn- monitor-reporters [var]
+  (-> var var-get meta ::reporters))
 
-(defn monitor [var key callback]
+(defn monitor [var key reporter]
   (locking var
-    (if-let [callbacks (monitor-callbacks var)]
-      (swap! callbacks assoc key callback)
-      (alter-var-root var wrap-monitor var (atom {key callback})))))
+    (if-let [reporters (monitor-reporters var)]
+      (swap! reporters assoc key reporter)
+      (alter-var-root var wrap-monitor var (atom {key reporter})))))
 
 (defn unmonitor [var key]
   (locking var
-    (when-let [callbacks (monitor-callbacks var)]
-      (when (empty? (swap! callbacks dissoc key))
+    (when-let [reporters (monitor-reporters var)]
+      (when (empty? (swap! reporters dissoc key))
         (alter-var-root var (comp ::original meta))))))
 
-(defrecord Inquest [vars callbacks]
+(defrecord Inquest [vars reporters]
   component/Lifecycle
   (start [inquest]
     (if (:monitor-key inquest)
       inquest
       (let [k (gensym "inquest-")
-            f (fn [msg] (doseq [c callbacks] (c msg)))]
+            f (fn [msg] (doseq [c reporters] (c msg)))]
         (doseq [v vars] (monitor v k f))
         (assoc inquest :monitor-key k))))
   (stop [inquest]
@@ -55,5 +55,5 @@
       (doseq [v vars] (unmonitor v k))
       (dissoc inquest :monitor-key))))
 
-(defn inquest [vars callbacks]
-  (->Inquest (set vars) (set callbacks)))
+(defn inquest [vars reporters]
+  (->Inquest (set vars) (set reporters)))
