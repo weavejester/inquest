@@ -1,5 +1,4 @@
-(ns inquest.core
-  (:require [com.stuartsierra.component :as component]))
+(ns inquest.core)
 
 (defn- report [state var key value]
   {:time   (System/nanoTime)
@@ -40,20 +39,3 @@
     (when-let [reporters (monitor-reporters var)]
       (when (empty? (swap! reporters dissoc key))
         (alter-var-root var (comp ::original meta))))))
-
-(defrecord Inquest [vars reporters]
-  component/Lifecycle
-  (start [inquest]
-    (if (:monitor-key inquest)
-      inquest
-      (let [k (gensym "inquest-")
-            f (fn [msg] (doseq [c reporters] (c msg)))]
-        (doseq [v vars] (monitor v k f))
-        (assoc inquest :monitor-key k))))
-  (stop [inquest]
-    (if-let [k (:monitor-key inquest)]
-      (doseq [v vars] (unmonitor v k))
-      (dissoc inquest :monitor-key))))
-
-(defn inquest [vars reporters]
-  (->Inquest (set vars) (set reporters)))
