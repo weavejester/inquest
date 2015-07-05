@@ -8,20 +8,20 @@
    :var    var
    key     value})
 
-(defn- dispatch [reporters message]
+(defn- dispatch! [reporters message]
   (doseq [r reporters] (r message)))
 
 (defn- wrap-monitor [f var reporters]
   (with-meta
     (fn [& args]
       (let [rs (vals @reporters)]
-        (dispatch rs (report :enter var :args args))
+        (dispatch! rs (report :enter var :args args))
         (try
           (let [ret (apply f args)]
-            (dispatch rs (report :exit var :return ret))
+            (dispatch! rs (report :exit var :return ret))
             ret)
           (catch Throwable th
-            (dispatch rs (report :exit var :exception th))
+            (dispatch! rs (report :exit var :exception th))
             (throw th)))))
     {::original f
      ::reporters reporters}))
