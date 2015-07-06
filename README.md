@@ -19,6 +19,11 @@ To install, add the following to your project `:dependencies`:
     [inquest "0.1.0-SNAPSHOT"]
 
 
+## Documentation
+
+* [API Docs](https://weavejester.github.io/inquest/inquest.core.html)
+
+
 ## Basic Usage
 
 Let's say you have some functions you wish to monitor:
