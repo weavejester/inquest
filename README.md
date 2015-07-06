@@ -99,6 +99,13 @@ order for this to work, the inquest must be started after the
 multimethod is fully defined.
 
 
+## Caveats
+
+Inquest uses the `alter-var-root` function to add monitoring to
+vars. This function doesn't currently work with protocol methods, so
+neither does Inquest.
+
+
 ## License
 
 Copyright © 2015 James Reeves
