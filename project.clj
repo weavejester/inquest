@@ -1,4 +1,4 @@
-(defproject inquest "0.1.0-SNAPSHOT"
+(defproject inquest "0.1.0"
   :description "Non-invasive monitoring library"
   :url "https://github.com/weavejester/inquest"
   :license {:name "Eclipse Public License"

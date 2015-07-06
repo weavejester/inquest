@@ -18,7 +18,7 @@ called whenever the var is used.
 
 To install, add the following to your project `:dependencies`:
 
-    [inquest "0.1.0-SNAPSHOT"]
+    [inquest "0.1.0"]
 
 
 ## Documentation
