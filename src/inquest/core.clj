@@ -39,3 +39,11 @@
     (when-let [reporters (monitor-reporters var)]
       (when (empty? (swap! reporters dissoc key))
         (alter-var-root var (comp ::original meta))))))
+
+(defn inquest [vars reporter]
+  (let [key (gensym "inquest-")]
+    (doseq [v vars]
+      (monitor v key reporter))
+    (fn []
+      (doseq [v vars]
+        (unmonitor v key)))))
