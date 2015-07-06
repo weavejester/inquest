@@ -1,5 +1,7 @@
 # Inquest
 
+[![Build Status](https://travis-ci.org/weavejester/inquest.svg?branch=master)](https://travis-ci.org/weavejester/inquest)
+
 Inquest is a library for non-invasive logging and monitoring in
 Clojure.
 
