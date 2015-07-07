@@ -13,19 +13,19 @@
       (is (thrown? ClassCastException (foo "1")))
       (is (= (count @reports) 4))
       (let [r (@reports 0)]
-        (is (= (:var r) #'foo))
+        (is (= (:target r) #'foo))
         (is (= (:state r) :enter))
         (is (= (:args r) '(1))))
       (let [r (@reports 1)]
-        (is (= (:var r) #'foo))
+        (is (= (:target r) #'foo))
         (is (= (:state r) :exit))
         (is (= (:return r) 2)))
       (let [r (@reports 2)]
-        (is (= (:var r) #'foo))
+        (is (= (:target r) #'foo))
         (is (= (:state r) :enter))
         (is (= (:args r) '("1"))))
       (let [r (@reports 3)]
-        (is (= (:var r) #'foo))
+        (is (= (:target r) #'foo))
         (is (= (:state r) :throw))
         (is (= (type (:exception r)) ClassCastException)))
       (finally
@@ -47,19 +47,19 @@
         (is (= (bar 2) 1))
         (is (= (count @reports) 4))
         (let [r (@reports 0)]
-          (is (= (:var r) #'foo))
+          (is (= (:target r) #'foo))
           (is (= (:state r) :enter))
           (is (= (:args r) '(1))))
         (let [r (@reports 1)]
-          (is (= (:var r) #'foo))
+          (is (= (:target r) #'foo))
           (is (= (:state r) :exit))
           (is (= (:return r) 2)))
         (let [r (@reports 2)]
-          (is (= (:var r) #'bar))
+          (is (= (:target r) #'bar))
           (is (= (:state r) :enter))
           (is (= (:args r) '(2))))
         (let [r (@reports 3)]
-          (is (= (:var r) #'bar))
+          (is (= (:target r) #'bar))
           (is (= (:state r) :exit))
           (is (= (:return r) 1)))
         (finally
