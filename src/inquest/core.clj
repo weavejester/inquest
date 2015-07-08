@@ -12,10 +12,8 @@
          :thread (.getId (Thread/currentThread))
          :target target))
 
-(defn- report! [target map]
-  (let [report (make-report target map)]
-    (doseq [reporter (vals (@reporters target))]
-      (reporter report))))
+(defn- dispatch! [reporters report]
+  (doseq [r reporters] (r report)))
 
 (defn wrap-reporting
   "Takes a function and a target key, and returns a new function that will
@@ -37,14 +35,16 @@
     func
     (with-meta
       (fn [& args]
-        (report! target {:state :enter, :args args})
-        (try
-          (let [ret (apply func args)]
-            (report! target {:state :exit, :return ret})
-            ret)
-          (catch Throwable th
-            (report! target {:state :throw, :exception th})
-            (throw th))))
+        (if-let [rs (vals (@reporters target))]
+          (do (dispatch! rs (make-report target {:state :enter, :args args}))
+              (try
+                (let [ret (apply func args)]
+                  (dispatch! rs (make-report target {:state :exit, :return ret}))
+                  ret)
+                (catch Throwable th
+                  (dispatch! rs (make-report target {:state :throw, :exception th}))
+                  (throw th))))
+          (apply func args)))
       {::original func
        ::target target})))
 
