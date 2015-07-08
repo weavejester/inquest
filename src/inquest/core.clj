@@ -2,21 +2,19 @@
   "Functions to add monitoring to existing vars."
   (:require [medley.core :refer [dissoc-in]]))
 
-(def reporters
-  "An atom that maps targets to reporters."
-  (atom {}))
+(def ^:private reporters (atom {}))
 
-(defn- make-report [target map]
-  (assoc map
-         :time   (System/nanoTime)
+(defn- make-report [key map]
+  (into {:time   (System/nanoTime)
          :thread (.getId (Thread/currentThread))
-         :target target))
+         :key    key}
+        map))
 
 (defn- dispatch! [reporters report]
   (doseq [r reporters] (r report)))
 
-(defn wrap-reporting
-  "Takes a function and a target key, and returns a new function that will
+(defn monitor
+  "Takes a function and a unique key, and returns a new function that will
   report on its operation. A report is a map that contains the following
   keys:
 
@@ -29,48 +27,42 @@
 
     :args      - the arguments passed to the var (only in the :enter state)
     :return    - the return value from the var   (only in the :exit state)
-    :exception - the thrown exception            (only in the :throw state)"
-  [func target]
-  (if (-> func meta ::original)
-    func
-    (with-meta
-      (fn [& args]
-        (if-let [rs (vals (@reporters target))]
-          (do (dispatch! rs (make-report target {:state :enter, :args args}))
-              (try
-                (let [ret (apply func args)]
-                  (dispatch! rs (make-report target {:state :exit, :return ret}))
-                  ret)
-                (catch Throwable th
-                  (dispatch! rs (make-report target {:state :throw, :exception th}))
-                  (throw th))))
-          (apply func args)))
-      {::original func
-       ::target target})))
+    :exception - the thrown exception            (only in the :throw state)
 
-(defn unwrap-reporting
-  "Remove reporting from a function."
-  [func]
-  (let [m (meta func)]
-    (swap! reporters dissoc (::target m))
-    (::original m)))
-
-(defn monitor
-  "Monitors the specified target, passing reports to a reporter function.
-  The key argument may be anything, and is used with the unmonitor function
-  to remove the reporter from the var."
-  [var key reporter]
-  (locking var
-    (swap! reporters assoc-in [var key] reporter)
-    (alter-var-root var wrap-reporting var)))
+  Reports are sent to reporters that can be registered with the monitor key
+  using add-reporter."
+  [func key]
+  (with-meta
+    (fn [& args]
+      (if-let [rs (vals (@reporters key))]
+        (do (dispatch! rs (make-report key {:state :enter, :args args}))
+            (try
+              (let [ret (apply func args)]
+                (dispatch! rs (make-report key {:state :exit, :return ret}))
+                ret)
+              (catch Throwable th
+                (dispatch! rs (make-report key {:state :throw, :exception th}))
+                (throw th))))
+        (apply func args)))
+    {::original func
+     ::key      key}))
 
 (defn unmonitor
-  "Removes the reporter identified by the key from the var, setting it back to
-  normal."
-  [var key]
-  (locking var
-    (when (empty? (swap! reporters dissoc-in [var key]))
-      (alter-var-root var unwrap-reporting))))
+  "Remove monitoring from a function."
+  [func]
+  (-> func meta ::original (or func)))
+
+(defn add-reporter
+  "Add a reporter function to the function associated with monitor-key. The
+  reporter-key should be unique to the reporter."
+  [monitor-key reporter-key reporter]
+  (swap! reporters assoc-in [monitor-key reporter-key] reporter))
+
+(defn remove-reporter
+  "Remove a reporter function identified by reporter-key, from the function
+  associated with monitor-key."
+  [monitor-key reporter-key]
+  (swap! reporters dissoc-in [monitor-key reporter-key]))
 
 (defn inquest
   "A convenience function for monitoring many vars with the same reporter
@@ -81,7 +73,9 @@
   [vars reporter]
   (let [key (gensym "inquest-")]
     (doseq [v vars]
-      (monitor v key reporter))
+      (alter-var-root v monitor v)
+      (add-reporter v key reporter))
     (fn []
+      (swap! reporters dissoc key)
       (doseq [v vars]
-        (unmonitor v key)))))
+        (alter-var-root v unmonitor)))))
